@@ -64,12 +64,15 @@ F.load_breakpoints = function()
 	local new_loaded_bufs = {}
 	-- Find the new loaded buffer.
 	for _, buf in ipairs(vim.api.nvim_list_bufs()) do
-		local file_name = vim.api.nvim_buf_get_name(buf)
-		-- if bbps[buf] != nil => this file's breakpoints have been loaded.
-		-- if vim.tbl_isempty(bps[file_name] or {}) => This file have no saved breakpoints.
-		if bbps[buf] == nil and vim.tbl_isempty(fbps[file_name] or {}) == false then
-			new_loaded_bufs[file_name] = buf
-		end
+		local is_loaded = vim.api.nvim_buf_is_loaded(buf)
+        if is_loaded then
+		    local file_name = vim.api.nvim_buf_get_name(buf)
+		    -- if bbps[buf] != nil => this file's breakpoints have been loaded.
+		    -- if vim.tbl_isempty(bps[file_name] or {}) => This file have no saved breakpoints.
+		    if bbps[buf] == nil and vim.tbl_isempty(fbps[file_name] or {}) == false then
+		        new_loaded_bufs[file_name] = buf
+		    end
+        end
 	end
 	for file_name, buf_id in pairs(new_loaded_bufs) do
 		for _, bp in pairs(fbps[file_name]) do
