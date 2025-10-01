@@ -8,11 +8,22 @@ persistent-breakpoints is a lua plugin for Neovim to save the [nvim-dap](https:/
 
 ## Install
 
-### with `packer.nvim`
+### `lazy.nvim`
+
+```lua
+{
+  'Weissle/persistent-breakpoints.nvim',
+  opts = {
+    load_breakpoints_event = { "BufReadPost" }
+  }
+}
+```
+
+### `packer.nvim`
 
 `use {'Weissle/persistent-breakpoints.nvim'}`
 
-### or with `vim-plug`
+### `vim-plug`
 
 `Plug 'Weissle/persistent-breakpoints.nvim'`
 
@@ -38,8 +49,6 @@ require('persistent-breakpoints').setup{
  --- @param buf_id integer the buffer the breakpoint was set on
  --- @param line integer the line the breakpoint was set on
  on_load_breakpoint = nil,
-    -- set this to true if the breakpoints are not loaded when you are using a session-like plugin.
- always_reload = false,
 }
 ```
 

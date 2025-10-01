@@ -61,28 +61,35 @@ F.store_breakpoints = function(clear)
   end
 end
 
-F.load_breakpoints = function()
-  local buf = vim.api.nvim_get_current_buf()
+--- Loads breakpoints for the specified buffers, or all buffers if none are specified.
+--  For each buffer, if there are saved breakpoints and they have not already been loaded,
+--  this function sets the breakpoints in the buffer and calls the on_load_breakpoint callback if configured.
+--  @param bufs (optional) Table of buffer numbers to load breakpoints for. If nil, all buffers are processed.
+F.load_breakpoints = function(bufs)
+  -- go through all buffers if none were specified
+  local buffers = bufs or vim.api.nvim_list_bufs()
 
-  if vim.api.nvim_buf_is_loaded(buf) then
-    local file_name = vim.api.nvim_buf_get_name(buf)
-    local bbps = breakpoints.get()
-    local fbps = inmemory_bps.bps
+  local bbps = breakpoints.get()
+  local fbps = inmemory_bps.bps
 
-    local has_saved_breakpoints = vim.tbl_isempty(fbps[file_name] or {}) == false
-    local was_loaded_already = bbps[buf] ~= nil
+  for _, buf in ipairs(buffers) do
+    if vim.api.nvim_buf_is_loaded(buf) then
+      local file_name = vim.api.nvim_buf_get_name(buf)
+      local has_saved_breakpoints = vim.tbl_isempty(fbps[file_name] or {}) == false
+      local was_loaded_already = bbps[buf] ~= nil
 
-    if has_saved_breakpoints and not was_loaded_already then
-      for _, bp in pairs(fbps[file_name]) do
-        local line = bp.line
-        local opts = {
-          condition = bp.condition,
-          log_message = bp.logMessage,
-          hit_condition = bp.hitCondition,
-        }
-        breakpoints.set(opts, buf, line)
-        if config.on_load_breakpoint ~= nil then
-          config.on_load_breakpoint(opts, buf, line)
+      if has_saved_breakpoints and not was_loaded_already then
+        for _, bp in pairs(fbps[file_name]) do
+          local line = bp.line
+          local opts = {
+            condition = bp.condition,
+            log_message = bp.logMessage,
+            hit_condition = bp.hitCondition,
+          }
+          breakpoints.set(opts, buf, line)
+          if config.on_load_breakpoint ~= nil then
+            config.on_load_breakpoint(opts, buf, line)
+          end
         end
       end
     end
@@ -101,26 +108,31 @@ local perf_data = {}
 local M = {}
 
 for func_name, func_body in pairs(F) do
-  M[func_name] = function()
+  M[func_name] = function(...)
     if config.perf_record then
       local start_time = vim.fn.reltimefloat(vim.fn.reltime())
-      func_body()
+      func_body(...)
       local end_time = vim.fn.reltimefloat(vim.fn.reltime())
       perf_data[func_name] = end_time - start_time
     else
-      func_body()
+      func_body(...)
     end
   end
 end
 
 M.print_perf_data = function()
+  local result = M._get_perf_data()
+  vim.notify(result, vim.log.levels.DEBUG, { title = "persistent-breakpoints.nvim" })
+end
+
+M._get_perf_data = function()
   local result = ""
   for fn, fd in pairs(perf_data) do
     local ms = math.floor(fd * 1e6 + 0.5) / 1e3
     local str = fn .. ": " .. tostring(ms) .. "ms\n"
     result = result .. str
   end
-  print(result)
+  return result
 end
 
 return M
